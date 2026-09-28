@@ -1,3 +1,5 @@
+# MN5-ACC: module load nvidia-hpc-sdk/26.5 hdf5/1.14.1-2-nvidia-nvhpc yaml-cpp
+#
 EXECUTABLE   = BSCH_3D_GPU.exe
 MAIN         = myRHEA.cpp
 CONFIG_FILE  = configuration_file.yaml
@@ -9,14 +11,16 @@ CXX          = mpicxx
 # CPU FLAGS
 #CXXFLAGS     = -Ofast -Wall -std=c++17 -Wno-unknown-pragmas -Wno-unused-variable -I$(PROJECT_PATH) 
 ## CPU-GPU FLAGS
-CXXFLAGS     = -fast -acc -gpu=cc86 -Minfo=accel -O3 -Wall -std=c++0x -I$(PROJECT_PATH)
+# NOTE: MN5-ACC module nvidia-hpc-sdk/26.5: compute capability is: cc90
+CXXFLAGS     = -fast -acc -gpu=cc90 -Minfo=accel -O3 -Wall -std=c++0x -I$(PROJECT_PATH)
 # CUDA_AWARE MPI FLAG
-CXXFLAGS += -D_GPU_AWARE_MPI_DEACTIVATED_=1
+# NOTE: MN5-ACC module nvidia-hpc-sdk/26.5: GPU awareness of MPI should be OK
+CXXFLAGS += -D_GPU_AWARE_MPI_DEACTIVATED_=0
 # UBUNTU - LINUX
 INC_LIB_YAML =
 INC_DIR_YAML =
-INC_LIB_HDF5 = -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi 
-INC_DIR_HDF5 = -I/usr/include/hdf5/openmpi
+#INC_LIB_HDF5 = -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi 
+#INC_DIR_HDF5 = -I/usr/include/hdf5/openmpi
 ## MAC - OS X
 #INC_LIB_YAML = -L/usr/local/lib
 #INC_DIR_YAML = -I/usr/local/include
@@ -24,9 +28,12 @@ INC_DIR_HDF5 = -I/usr/include/hdf5/openmpi
 #INC_DIR_HDF5 =
 LDFLAGS      = -lyaml-cpp -lhdf5 -lpthread
 
-NVTX ?= 0
+NVTX ?= 1
 ifeq ($(NVTX),1)
-    INC_DIR_NVTX = -I/opt/nvidia/hpc_sdk/Linux_x86_64/25.1/profilers/Nsight_Systems/target-linux-x64/nvtx/include
+    # NOTE: MN5-ACC module nvidia-hpc-sdk/26.5:
+    # NVTX LIB: libnvtx3interop.so /apps/ACC/NVIDIA-HPC-SDK/26.5/Linux_x86_64/26.5/cuda/13.2/targets/x86_64-linux/lib
+    # NVTX INC: /apps/ACC/NVIDIA-HPC-SDK/26.5/Linux_x86_64/26.5/profilers/13.2/Nsight_Systems/target-linux-x64/nvtx/include
+    INC_DIR_NVTX = -I/apps/ACC/NVIDIA-HPC-SDK/26.5/Linux_x86_64/26.5/profilers/13.2/Nsight_Systems/target-linux-x64/nvtx/include
     CXXFLAGS += -DUSE_NVTX $(INC_DIR_NVTX)
     LDFLAGS  += -ldl
 endif

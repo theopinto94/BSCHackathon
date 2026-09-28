@@ -1,0 +1,15 @@
+NODETYPE=acc_debug
+RESOURCE_HANDLING=qos
+GENERIC_RESOURCES=gpu:4
+PPN=4
+NTH=1
+NGPUS=4
+INIT_COMMANDS="module load nvidia-hpc-sdk/26.5 hdf5/1.14.1-2-nvidia-nvhpc yaml-cpp"
+MPIEXEC=ompi5
+BATCH=slurm
+ACCOUNT=ehpc01
+BEFORE='rhea-preproc.sh'
+AFTER='./rhea-postproc.sh'
+TARGET_BIN="./runner-script.sh"
+TIME_LIMIT=10
+JOB_NAME=RHEA_test
