@@ -1,4 +1,17 @@
+# export RHEA_PATH_BSCH=$PWD/../../RHEA/flowsolverrhea
 # MN5-ACC: module load nvidia-hpc-sdk/26.5 hdf5/1.14.1-2-nvidia-nvhpc yaml-cpp
+# export PATH=$HOME/bin:$PATH
+#
+# mkdir -p $HOME/bin
+# cp ../../psubmit/* $HOME/bin
+#
+# pre-allocation:
+#    $ psubmit.sh -o vbbs-psubmit.opt
+#    ...
+#
+# running on pre-allocated:
+#    $ PROFILE=each-rank psubmit.sh -lbatch=vbbs   
+#
 #
 EXECUTABLE   = BSCH_3D_GPU.exe
 MAIN         = myRHEA.cpp

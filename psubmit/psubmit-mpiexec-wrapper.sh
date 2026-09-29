@@ -162,8 +162,8 @@ BATCH="slurm"
 if [ -f "$OPTIONSFILE" ]; then
     . "$OPTIONSFILE"
 else
-    if [ -f "$PSUBMIT_DIR/$OPTSCRIPT" ]; then
-        . "$PSUBMIT_DIR/$OPTIONSFILE"
+    if [ -f "$PSUBMIT_DIRNAME/$OPTSCRIPT" ]; then
+        . "$PSUBMIT_DIRNAME/$OPTIONSFILE"
     fi
 fi
 

@@ -61,10 +61,10 @@ else
     if [ -f "$PSUBMIT_SUBDIR/$OPTSCRIPT" ]; then
         . "$OPTSCRIPT"
     else 
-        if [ -f "$PSUBMIT_DIR/$OPTSCRIPT" ]; then
-            . "$PSUBMIT_DIR/$OPTSCRIPT"     
+        if [ -f "$PSUBMIT_DIRNAME/$OPTSCRIPT" ]; then
+            . "$PSUBMIT_DIRNAME/$OPTSCRIPT"     
         else
-            echo "Cannot open options script:" "$PSUBMIT_SUBDIR/$OPTSCRIPT"
+            echo "Cannot open options script:" "$OPTSCRIPT"
             exit 1
         fi 
     fi
