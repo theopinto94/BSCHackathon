@@ -1,0 +1,16 @@
+NODETYPE="acc_debug"
+RESOURCE_HANDLING='qos'
+GENERIC_RESOURCES="gpu:4"
+PPN="8"
+NTH="10"
+NGPUS="4"
+NNODES=1
+INIT_COMMANDS="module load nvidia-hpc-sdk/26.5"
+MPIEXEC="ompi5"
+BATCH="slurm"
+ACCOUNT="upc119"
+TIME_LIMIT="100"
+BEFORE=$HOME/bin/vbbs_sleep_preproc.sh
+AFTER=$HOME/bin/vbbs_sleep_postproc.sh
+TARGET_BIN=$HOME/bin/vbbs_sleep.sh
+JOB_NAME="RHEA_MNHACK8_test"
