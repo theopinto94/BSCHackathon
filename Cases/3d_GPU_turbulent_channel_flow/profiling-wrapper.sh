@@ -84,8 +84,9 @@ case "$option" in
         [ -z "$parameter" ] || regex="-k regex:$parameter"
         [ -z "$parameter2" ] || parameter2="5"
         outfile="${name}_${global_rank}.ncu"
-        traceropts="--import-source=yes --clock-control=none $regex -c $parameter2 --set=full -f"
-        exec ${profiler} ${traceopts} -o ${outdir}/${outfile} $*
+	mkdir -p $outdir
+        traceropts="--import-source=yes --clock-control=none $regex -c 5 --set=full -f"
+        exec ${profiler} ${traceropts} -o ${outdir}/${outfile} $*
         ;;
     counters)  echo "FATAL: counters option is not supported."
         exit 1 

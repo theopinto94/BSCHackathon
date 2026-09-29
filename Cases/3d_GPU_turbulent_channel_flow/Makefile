@@ -11,7 +11,7 @@
 #
 # running on pre-allocated:
 #    $ PROFILE=each-rank psubmit.sh -lbatch=vbbs   
-#    $ PROFILE=ncu:function_name psubmit.sh -lbatch=vbbs   
+#    $ PROFILE=ncu:.*calculateViscous.* psubmit.sh -lbatch=vbbs   
 #
 #
 EXECUTABLE   = BSCH_3D_GPU.exe
@@ -26,7 +26,7 @@ CXX          = mpicxx
 #CXXFLAGS     = -Ofast -Wall -std=c++17 -Wno-unknown-pragmas -Wno-unused-variable -I$(PROJECT_PATH) 
 ## CPU-GPU FLAGS
 # NOTE: MN5-ACC module nvidia-hpc-sdk/26.5: compute capability is: cc90
-CXXFLAGS     = -fast -acc -gpu=cc90 -Minfo=accel -O3 -Wall -std=c++0x -I$(PROJECT_PATH)
+CXXFLAGS     = -fast -acc -gpu=cc90, maxregcount=168 -Minfo=accel -O3 -Wall -std=c++0x -I$(PROJECT_PATH)
 # CUDA_AWARE MPI FLAG
 # NOTE: MN5-ACC module nvidia-hpc-sdk/26.5: GPU awareness of MPI should be OK
 CXXFLAGS += -D_GPU_AWARE_MPI_DEACTIVATED_=0
