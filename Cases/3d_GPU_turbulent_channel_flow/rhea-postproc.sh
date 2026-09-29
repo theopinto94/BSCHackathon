@@ -96,3 +96,9 @@ if [ "$success" == "false" ]; then
     sed -i 's/success: true/success: false/' result.${PSUBMIT_JOBID}.yaml
 fi
 
+nsys_out=profiling.${PSUBMIT_JOBID}/rank_0/report_0.nsys.nsys-rep
+ncu_out=profiling.${PSUBMIT_JOBID}/rank_0/report_0.ncu.ncu-rep
+[ -f $nsys_out ] && cp -v $nsys_out $HOME
+[ -f $ncu_out ] && cp -v $ncu_out $HOME
+
+#-- results.2/profiling.2/rank_0/report_0.nsys.nsys-rep
