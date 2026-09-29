@@ -11,6 +11,7 @@
 #
 # running on pre-allocated:
 #    $ PROFILE=each-rank psubmit.sh -lbatch=vbbs   
+#    $ PROFILE=ncu:function_name psubmit.sh -lbatch=vbbs   
 #
 #
 EXECUTABLE   = BSCH_3D_GPU.exe
