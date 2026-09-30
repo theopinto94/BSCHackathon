@@ -3131,117 +3131,205 @@ void FlowSolverRHEA::calculateViscousFluxes() {
     /// Fundamentals of engineering numerical analysis.
     /// Cambridge University Press, 2010.
 
-    /// Inner points: rho_vis_flux, rhou_vis_flux, rhov_vis_flux, rhow_vis_flux, rhoE_vis_flux and work_vis_rhoe_flux 
-    double delta_x, delta_y, delta_z;
-    double d_u_x, d_u_y, d_u_z, d_v_x, d_v_y, d_v_z, d_w_x, d_w_y, d_w_z;
-    double d_T_x, d_T_y, d_T_z;
-    double d_mu_x, d_mu_y, d_mu_z, d_kappa_x, d_kappa_y, d_kappa_z;
-    double div_uvw, tau_xx, tau_xy, tau_xz, tau_yy, tau_yz, tau_zz;
-    double div_tau_x, div_tau_y, div_tau_z;
-    double div_q, div_uvw_tau_rhoe, div_uvw_tau_rhoke, div_uvw_tau_rhoE; 
-    #pragma acc parallel loop collapse(3) private(delta_x, delta_y, delta_z, d_u_x, d_u_y, d_u_z, d_v_x, d_v_y, d_v_z, d_w_x, d_w_y, d_w_z, d_T_x, d_T_y, d_T_z, d_mu_x, d_mu_y, d_mu_z, d_kappa_x, d_kappa_y, d_kappa_z, div_uvw, tau_xx, tau_xy, tau_xz, tau_yy, tau_yz, tau_zz, div_tau_x, div_tau_y, div_tau_z, div_q, div_uvw_tau_rhoe, div_uvw_tau_rhoke, div_uvw_tau_rhoE) present(this, x_field.vector[0:_ls_], y_field.vector[0:_ls_], z_field.vector[0:_ls_], u_field.vector[0:_ls_], v_field.vector[0:_ls_], w_field.vector[0:_ls_], T_field.vector[0:_ls_], mu_field.vector[0:_ls_], kappa_field.vector[0:_ls_], rhou_vis_flux.vector[0:_ls_], rhov_vis_flux.vector[0:_ls_], rhow_vis_flux.vector[0:_ls_], rhoE_vis_flux.vector[0:_ls_], work_vis_rhoe_flux.vector[0:_ls_])  
-    for(int i = topo->iter_common[_INNER_][_INIX_]; i <= topo->iter_common[_INNER_][_ENDX_]; i++) {
-        for(int j = topo->iter_common[_INNER_][_INIY_]; j <= topo->iter_common[_INNER_][_ENDY_]; j++) {
-            for(int k = topo->iter_common[_INNER_][_INIZ_]; k <= topo->iter_common[_INNER_][_ENDZ_]; k++) {
-                /// Geometric stuff
-                delta_x = 0.5*( x_field[I1D(i+1,j,k)] - x_field[I1D(i-1,j,k)] ); 
-                delta_y = 0.5*( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j-1,k)] ); 
-                delta_z = 0.5*( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k-1)] );
-                /// Velocity derivatives
-                d_u_x = ( u_field[I1D(i+1,j,k)] - u_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
-                d_u_y = ( u_field[I1D(i,j+1,k)] - u_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
-                d_u_z = ( u_field[I1D(i,j,k+1)] - u_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
-                d_v_x = ( v_field[I1D(i+1,j,k)] - v_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
-                d_v_y = ( v_field[I1D(i,j+1,k)] - v_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
-                d_v_z = ( v_field[I1D(i,j,k+1)] - v_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
-                d_w_x = ( w_field[I1D(i+1,j,k)] - w_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
-                d_w_y = ( w_field[I1D(i,j+1,k)] - w_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
-                d_w_z = ( w_field[I1D(i,j,k+1)] - w_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
-                /// Temperature derivatives
-                d_T_x = ( T_field[I1D(i+1,j,k)] - T_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
-                d_T_y = ( T_field[I1D(i,j+1,k)] - T_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
-                d_T_z = ( T_field[I1D(i,j,k+1)] - T_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
-                /// Transport coefficients derivatives
-                d_mu_x    = ( mu_field[I1D(i+1,j,k)] - mu_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
-                d_mu_y    = ( mu_field[I1D(i,j+1,k)] - mu_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
-                d_mu_z    = ( mu_field[I1D(i,j,k+1)] - mu_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
-                d_kappa_x = ( kappa_field[I1D(i+1,j,k)] - kappa_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
-                d_kappa_y = ( kappa_field[I1D(i,j+1,k)] - kappa_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
-                d_kappa_z = ( kappa_field[I1D(i,j,k+1)] - kappa_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
-                /// Divergence of velocity
-                div_uvw = d_u_x + d_v_y + d_w_z;
-                /// Viscous stresses ( symmetric tensor )
-                tau_xx = 2.0*mu_field[I1D(i,j,k)]*( d_u_x - ( div_uvw/3.0 ) );
-                tau_xy = mu_field[I1D(i,j,k)]*( d_u_y + d_v_x );
-                tau_xz = mu_field[I1D(i,j,k)]*( d_u_z + d_w_x );
-                tau_yy = 2.0*mu_field[I1D(i,j,k)]*( d_v_y - ( div_uvw/3.0 ) );
-                tau_yz = mu_field[I1D(i,j,k)]*( d_v_z + d_w_y );
-                tau_zz = 2.0*mu_field[I1D(i,j,k)]*( d_w_z - ( div_uvw/3.0 ) );
-                /// Divergence of viscous stresses
-                div_tau_x = mu_field[I1D(i,j,k)]*( ( 1.00/delta_x )*( ( u_field[I1D(i+1,j,k)] - u_field[I1D(i,j,k)] )/( x_field[I1D(i+1,j,k)] - x_field[I1D(i,j,k)] )
-                                                                    - ( u_field[I1D(i,j,k)] - u_field[I1D(i-1,j,k)] )/( x_field[I1D(i,j,k)] - x_field[I1D(i-1,j,k)] ) )
-                                                 + ( 1.00/delta_y )*( ( u_field[I1D(i,j+1,k)] - u_field[I1D(i,j,k)] )/( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j,k)] )
-                                                                    - ( u_field[I1D(i,j,k)] - u_field[I1D(i,j-1,k)] )/( y_field[I1D(i,j,k)] - y_field[I1D(i,j-1,k)] ) )
-                                                 + ( 1.00/delta_z )*( ( u_field[I1D(i,j,k+1)] - u_field[I1D(i,j,k)] )/( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k)] )
-                                                                    - ( u_field[I1D(i,j,k)] - u_field[I1D(i,j,k-1)] )/( z_field[I1D(i,j,k)] - z_field[I1D(i,j,k-1)] ) ) )
-              + ( 1.0/3.0 )*mu_field[I1D(i,j,k)]*( ( 1.00/delta_x )*( ( u_field[I1D(i+1,j,k)] - u_field[I1D(i,j,k)] )/( x_field[I1D(i+1,j,k)] - x_field[I1D(i,j,k)] )
-                                                                    - ( u_field[I1D(i,j,k)] - u_field[I1D(i-1,j,k)] )/( x_field[I1D(i,j,k)] - x_field[I1D(i-1,j,k)] ) )
-                                                 + ( 0.25/delta_x )*( ( v_field[I1D(i+1,j+1,k)] - v_field[I1D(i+1,j-1,k)] )/delta_y
-                                                                    - ( v_field[I1D(i-1,j+1,k)] - v_field[I1D(i-1,j-1,k)] )/delta_y )
-                                                 + ( 0.25/delta_x )*( ( w_field[I1D(i+1,j,k+1)] - w_field[I1D(i+1,j,k-1)] )/delta_z
-                                                                    - ( w_field[I1D(i-1,j,k+1)] - w_field[I1D(i-1,j,k-1)] )/delta_z ) )
-	                  + ( d_mu_x*tau_xx + d_mu_y*tau_xy + d_mu_z*tau_xz )/max( mu_field[I1D(i,j,k)], epsilon );
-                div_tau_y = mu_field[I1D(i,j,k)]*( ( 1.00/delta_x )*( ( v_field[I1D(i+1,j,k)] - v_field[I1D(i,j,k)] )/( x_field[I1D(i+1,j,k)] - x_field[I1D(i,j,k)] )
-                                                                    - ( v_field[I1D(i,j,k)] - v_field[I1D(i-1,j,k)] )/( x_field[I1D(i,j,k)] - x_field[I1D(i-1,j,k)] ) )
-                                                 + ( 1.00/delta_y )*( ( v_field[I1D(i,j+1,k)] - v_field[I1D(i,j,k)] )/( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j,k)] )
-                                                                    - ( v_field[I1D(i,j,k)] - v_field[I1D(i,j-1,k)] )/( y_field[I1D(i,j,k)] - y_field[I1D(i,j-1,k)] ) )
-                                                 + ( 1.00/delta_z )*( ( v_field[I1D(i,j,k+1)] - v_field[I1D(i,j,k)] )/( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k)] )
-                                                                    - ( v_field[I1D(i,j,k)] - v_field[I1D(i,j,k-1)] )/( z_field[I1D(i,j,k)] - z_field[I1D(i,j,k-1)] ) ) )
-              + ( 1.0/3.0 )*mu_field[I1D(i,j,k)]*( ( 0.25/delta_y )*( ( u_field[I1D(i+1,j+1,k)] - u_field[I1D(i-1,j+1,k)] )/delta_x
-                                                                    - ( u_field[I1D(i+1,j-1,k)] - u_field[I1D(i-1,j-1,k)] )/delta_x )
-                                                 + ( 1.00/delta_y )*( ( v_field[I1D(i,j+1,k)] - v_field[I1D(i,j,k)] )/( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j,k)] )
-                                                                    - ( v_field[I1D(i,j,k)] - v_field[I1D(i,j-1,k)] )/( y_field[I1D(i,j,k)] - y_field[I1D(i,j-1,k)] ) )
-                                                 + ( 0.25/delta_y )*( ( w_field[I1D(i,j+1,k+1)] - w_field[I1D(i,j+1,k-1)] )/delta_z
-                                                                    - ( w_field[I1D(i,j-1,k+1)] - w_field[I1D(i,j-1,k-1)] )/delta_z ) )
-	                  + ( d_mu_x*tau_xy + d_mu_y*tau_yy + d_mu_z*tau_yz )/max( mu_field[I1D(i,j,k)], epsilon );
-                div_tau_z = mu_field[I1D(i,j,k)]*( ( 1.00/delta_x )*( ( w_field[I1D(i+1,j,k)] - w_field[I1D(i,j,k)] )/( x_field[I1D(i+1,j,k)] - x_field[I1D(i,j,k)] )
-                                                                    - ( w_field[I1D(i,j,k)] - w_field[I1D(i-1,j,k)] )/( x_field[I1D(i,j,k)] - x_field[I1D(i-1,j,k)] ) )
-                                                 + ( 1.00/delta_y )*( ( w_field[I1D(i,j+1,k)] - w_field[I1D(i,j,k)] )/( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j,k)] )
-                                                                    - ( w_field[I1D(i,j,k)] - w_field[I1D(i,j-1,k)] )/( y_field[I1D(i,j,k)] - y_field[I1D(i,j-1,k)] ) )
-                                                 + ( 1.00/delta_z )*( ( w_field[I1D(i,j,k+1)] - w_field[I1D(i,j,k)] )/( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k)] )
-                                                                    - ( w_field[I1D(i,j,k)] - w_field[I1D(i,j,k-1)] )/( z_field[I1D(i,j,k)] - z_field[I1D(i,j,k-1)] ) ) )
-              + ( 1.0/3.0 )*mu_field[I1D(i,j,k)]*( ( 0.25/delta_z )*( ( u_field[I1D(i+1,j,k+1)] - u_field[I1D(i-1,j,k+1)] )/delta_x
-                                                                    - ( u_field[I1D(i+1,j,k-1)] - u_field[I1D(i-1,j,k-1)] )/delta_x )
-                                                 + ( 0.25/delta_z )*( ( v_field[I1D(i,j+1,k+1)] - v_field[I1D(i,j-1,k+1)] )/delta_y
-                                                                    - ( v_field[I1D(i,j+1,k-1)] - v_field[I1D(i,j-1,k-1)] )/delta_y )
-                                                 + ( 1.00/delta_z )*( ( w_field[I1D(i,j,k+1)] - w_field[I1D(i,j,k)] )/( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k)] )
-                                                                    - ( w_field[I1D(i,j,k)] - w_field[I1D(i,j,k-1)] )/( z_field[I1D(i,j,k)] - z_field[I1D(i,j,k-1)] ) ) )
-	                  + ( d_mu_x*tau_xz + d_mu_y*tau_yz + d_mu_z*tau_zz )/max( mu_field[I1D(i,j,k)], epsilon );
-                /// Fourier term
-                div_q = ( -1.0 )*kappa_field[I1D(i,j,k)]*( ( 1.0/delta_x )*( ( T_field[I1D(i+1,j,k)] - T_field[I1D(i,j,k)] )/( x_field[I1D(i+1,j,k)] - x_field[I1D(i,j,k)] )
-                                                                           - ( T_field[I1D(i,j,k)] - T_field[I1D(i-1,j,k)] )/( x_field[I1D(i,j,k)] - x_field[I1D(i-1,j,k)] ) )
-                                                         + ( 1.0/delta_y )*( ( T_field[I1D(i,j+1,k)] - T_field[I1D(i,j,k)] )/( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j,k)] )
-                                                                           - ( T_field[I1D(i,j,k)] - T_field[I1D(i,j-1,k)] )/( y_field[I1D(i,j,k)] - y_field[I1D(i,j-1,k)] ) )
-                                                         + ( 1.0/delta_z )*( ( T_field[I1D(i,j,k+1)] - T_field[I1D(i,j,k)] )/( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k)] )
-                                                                           - ( T_field[I1D(i,j,k)] - T_field[I1D(i,j,k-1)] )/( z_field[I1D(i,j,k)] - z_field[I1D(i,j,k-1)] ) ) )
-		      - d_kappa_x*d_T_x - d_kappa_y*d_T_y - d_kappa_z*d_T_z;
-                /// Work of viscous stresses for internal energy
-                div_uvw_tau_rhoe = tau_xx*d_u_x + tau_xy*d_u_y + tau_xz*d_u_z
-                                 + tau_xy*d_v_x + tau_yy*d_v_y + tau_yz*d_v_z
-                                 + tau_xz*d_w_x + tau_yz*d_w_y + tau_zz*d_w_z;
-                /// Work of viscous stresses for kinetic energy
-                div_uvw_tau_rhoke = u_field[I1D(i,j,k)]*div_tau_x + v_field[I1D(i,j,k)]*div_tau_y + w_field[I1D(i,j,k)]*div_tau_z;
-                /// Work of viscous stresses for total energy
-                div_uvw_tau_rhoE = div_uvw_tau_rhoe + div_uvw_tau_rhoke; 
-                /// Viscous fluxes
-                rhou_vis_flux[I1D(i,j,k)]      = div_tau_x;
-                rhov_vis_flux[I1D(i,j,k)]      = div_tau_y;
-                rhow_vis_flux[I1D(i,j,k)]      = div_tau_z;
-                rhoE_vis_flux[I1D(i,j,k)]      = ( -1.0 )*div_q + div_uvw_tau_rhoE;
-                work_vis_rhoe_flux[I1D(i,j,k)] = ( -1.0 )*div_q + div_uvw_tau_rhoe;
-            }
-        }
-    }
+	const int imin = topo->iter_common[_INNER_][_INIX_], imax = topo->iter_common[_INNER_][_ENDX_];
+	const int jmin = topo->iter_common[_INNER_][_INIY_], jmax = topo->iter_common[_INNER_][_ENDY_];
+	const int kmin = topo->iter_common[_INNER_][_INIZ_], kmax = topo->iter_common[_INNER_][_ENDZ_];
+
+	/// rhou_vis_flux
+	#pragma acc parallel loop collapse(3) default(present)
+	for(int i = imin; i <= imax; i++) {
+		for(int j = jmin; j <= jmax; j++) {
+			for(int k = kmin; k <= kmax; k++) {
+				/// Geometric stuff
+				const double delta_x = 0.5*( x_field[I1D(i+1,j,k)] - x_field[I1D(i-1,j,k)] );
+				const double delta_y = 0.5*( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j-1,k)] );
+				const double delta_z = 0.5*( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k-1)] );
+				/// Velocity derivatives
+				const double d_u_x = ( u_field[I1D(i+1,j,k)] - u_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_u_y = ( u_field[I1D(i,j+1,k)] - u_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_u_z = ( u_field[I1D(i,j,k+1)] - u_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				const double d_v_x = ( v_field[I1D(i+1,j,k)] - v_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_v_y = ( v_field[I1D(i,j+1,k)] - v_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_w_x = ( w_field[I1D(i+1,j,k)] - w_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_w_z = ( w_field[I1D(i,j,k+1)] - w_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				/// Viscosity derivatives
+				const double d_mu_x = ( mu_field[I1D(i+1,j,k)] - mu_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_mu_y = ( mu_field[I1D(i,j+1,k)] - mu_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_mu_z = ( mu_field[I1D(i,j,k+1)] - mu_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				const double div_uvw = d_u_x + d_v_y + d_w_z;
+				/// Viscous stresses (symmetric tensor)
+				const double tau_xx = 2.0*mu_field[I1D(i,j,k)]*( d_u_x - ( div_uvw/3.0 ) );
+				const double tau_xy = mu_field[I1D(i,j,k)]*( d_u_y + d_v_x );
+				const double tau_xz = mu_field[I1D(i,j,k)]*( d_u_z + d_w_x );
+				const double div_tau_x = 
+                                mu_field[I1D(i,j,k)]*( 
+                                      ( 1.00/delta_x )*( ( u_field[I1D(i+1,j,k)] - u_field[I1D(i,j,k)] )/( x_field[I1D(i+1,j,k)] - x_field[I1D(i,j,k)] )
+										 - ( u_field[I1D(i,j,k)] - u_field[I1D(i-1,j,k)] )/( x_field[I1D(i,j,k)] - x_field[I1D(i-1,j,k)] ) )
+									+ ( 1.00/delta_y )*( ( u_field[I1D(i,j+1,k)] - u_field[I1D(i,j,k)] )/( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j,k)] )
+										 - ( u_field[I1D(i,j,k)] - u_field[I1D(i,j-1,k)] )/( y_field[I1D(i,j,k)] - y_field[I1D(i,j-1,k)] ) )
+									+ ( 1.00/delta_z )*( ( u_field[I1D(i,j,k+1)] - u_field[I1D(i,j,k)] )/( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k)] )
+										 - ( u_field[I1D(i,j,k)] - u_field[I1D(i,j,k-1)] )/( z_field[I1D(i,j,k)] - z_field[I1D(i,j,k-1)] ) ) )
+								+ ( 1.0/3.0 )*mu_field[I1D(i,j,k)]*( 
+                                      ( 1.00/delta_x )*( ( u_field[I1D(i+1,j,k)] - u_field[I1D(i,j,k)] )/( x_field[I1D(i+1,j,k)] - x_field[I1D(i,j,k)] )
+										 - ( u_field[I1D(i,j,k)] - u_field[I1D(i-1,j,k)] )/( x_field[I1D(i,j,k)] - x_field[I1D(i-1,j,k)] ) )
+									+ ( 0.25/delta_x )*( ( v_field[I1D(i+1,j+1,k)] - v_field[I1D(i+1,j-1,k)] )/delta_y
+										 - ( v_field[I1D(i-1,j+1,k)] - v_field[I1D(i-1,j-1,k)] )/delta_y )
+									+ ( 0.25/delta_x )*( ( w_field[I1D(i+1,j,k+1)] - w_field[I1D(i+1,j,k-1)] )/delta_z
+										 - ( w_field[I1D(i-1,j,k+1)] - w_field[I1D(i-1,j,k-1)] )/delta_z ) )
+								+ ( d_mu_x*tau_xx + d_mu_y*tau_xy + d_mu_z*tau_xz )/max( mu_field[I1D(i,j,k)], epsilon );
+				rhou_vis_flux[I1D(i,j,k)] = div_tau_x;
+			}
+		}
+	}
+
+	/// rhov_vis_flux
+	#pragma acc parallel loop collapse(3) default(present)
+	for(int i = imin; i <= imax; i++) {
+		for(int j = jmin; j <= jmax; j++) {
+			for(int k = kmin; k <= kmax; k++) {
+				/// Geometric stuff
+				const double delta_x = 0.5*( x_field[I1D(i+1,j,k)] - x_field[I1D(i-1,j,k)] );
+				const double delta_y = 0.5*( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j-1,k)] );
+				const double delta_z = 0.5*( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k-1)] );
+				/// Velocity derivatives
+				const double d_u_x = ( u_field[I1D(i+1,j,k)] - u_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_u_y = ( u_field[I1D(i,j+1,k)] - u_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_v_x = ( v_field[I1D(i+1,j,k)] - v_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_v_y = ( v_field[I1D(i,j+1,k)] - v_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_v_z = ( v_field[I1D(i,j,k+1)] - v_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				const double d_w_y = ( w_field[I1D(i,j+1,k)] - w_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_w_z = ( w_field[I1D(i,j,k+1)] - w_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				/// Viscosity derivatives
+				const double d_mu_x = ( mu_field[I1D(i+1,j,k)] - mu_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_mu_y = ( mu_field[I1D(i,j+1,k)] - mu_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_mu_z = ( mu_field[I1D(i,j,k+1)] - mu_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				const double div_uvw = d_u_x + d_v_y + d_w_z;
+				/// Viscous stresses (symmetric tensor)
+				const double tau_xy = mu_field[I1D(i,j,k)]*( d_u_y + d_v_x );
+				const double tau_yy = 2.0*mu_field[I1D(i,j,k)]*( d_v_y - ( div_uvw/3.0 ) );
+				const double tau_yz = mu_field[I1D(i,j,k)]*( d_v_z + d_w_y );
+				const double div_tau_y = mu_field[I1D(i,j,k)]*( ( 1.00/delta_x )*( ( v_field[I1D(i+1,j,k)] - v_field[I1D(i,j,k)] )/( x_field[I1D(i+1,j,k)] - x_field[I1D(i,j,k)] )
+										 - ( v_field[I1D(i,j,k)] - v_field[I1D(i-1,j,k)] )/( x_field[I1D(i,j,k)] - x_field[I1D(i-1,j,k)] ) )
+									+ ( 1.00/delta_y )*( ( v_field[I1D(i,j+1,k)] - v_field[I1D(i,j,k)] )/( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j,k)] )
+										 - ( v_field[I1D(i,j,k)] - v_field[I1D(i,j-1,k)] )/( y_field[I1D(i,j,k)] - y_field[I1D(i,j-1,k)] ) )
+									+ ( 1.00/delta_z )*( ( v_field[I1D(i,j,k+1)] - v_field[I1D(i,j,k)] )/( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k)] )
+										 - ( v_field[I1D(i,j,k)] - v_field[I1D(i,j,k-1)] )/( z_field[I1D(i,j,k)] - z_field[I1D(i,j,k-1)] ) ) )
+								+ ( 1.0/3.0 )*mu_field[I1D(i,j,k)]*( ( 0.25/delta_y )*( ( u_field[I1D(i+1,j+1,k)] - u_field[I1D(i-1,j+1,k)] )/delta_x
+										 - ( u_field[I1D(i+1,j-1,k)] - u_field[I1D(i-1,j-1,k)] )/delta_x )
+									+ ( 1.00/delta_y )*( ( v_field[I1D(i,j+1,k)] - v_field[I1D(i,j,k)] )/( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j,k)] )
+										 - ( v_field[I1D(i,j,k)] - v_field[I1D(i,j-1,k)] )/( y_field[I1D(i,j,k)] - y_field[I1D(i,j-1,k)] ) )
+									+ ( 0.25/delta_y )*( ( w_field[I1D(i,j+1,k+1)] - w_field[I1D(i,j+1,k-1)] )/delta_z
+										 - ( w_field[I1D(i,j-1,k+1)] - w_field[I1D(i,j-1,k-1)] )/delta_z ) )
+								+ ( d_mu_x*tau_xy + d_mu_y*tau_yy + d_mu_z*tau_yz )/max( mu_field[I1D(i,j,k)], epsilon );
+				rhov_vis_flux[I1D(i,j,k)] = div_tau_y;
+			}
+		}
+	}
+
+	/// rhow_vis_flux
+	#pragma acc parallel loop collapse(3) default(present)
+	for(int i = imin; i <= imax; i++) {
+		for(int j = jmin; j <= jmax; j++) {
+			for(int k = kmin; k <= kmax; k++) {
+				/// Geometric stuff
+				const double delta_x = 0.5*( x_field[I1D(i+1,j,k)] - x_field[I1D(i-1,j,k)] );
+				const double delta_y = 0.5*( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j-1,k)] );
+				const double delta_z = 0.5*( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k-1)] );
+				/// Velocity derivatives
+				const double d_u_x = ( u_field[I1D(i+1,j,k)] - u_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_u_z = ( u_field[I1D(i,j,k+1)] - u_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				const double d_v_y = ( v_field[I1D(i,j+1,k)] - v_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_v_z = ( v_field[I1D(i,j,k+1)] - v_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				const double d_w_x = ( w_field[I1D(i+1,j,k)] - w_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_w_y = ( w_field[I1D(i,j+1,k)] - w_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_w_z = ( w_field[I1D(i,j,k+1)] - w_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				/// Viscosity derivatives
+				const double d_mu_x = ( mu_field[I1D(i+1,j,k)] - mu_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_mu_y = ( mu_field[I1D(i,j+1,k)] - mu_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_mu_z = ( mu_field[I1D(i,j,k+1)] - mu_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				const double div_uvw = d_u_x + d_v_y + d_w_z;
+				/// Viscous stresses (symmetric tensor)
+				const double tau_xz = mu_field[I1D(i,j,k)]*( d_u_z + d_w_x );
+				const double tau_yz = mu_field[I1D(i,j,k)]*( d_v_z + d_w_y );
+				const double tau_zz = 2.0*mu_field[I1D(i,j,k)]*( d_w_z - ( div_uvw/3.0 ) );
+				const double div_tau_z = mu_field[I1D(i,j,k)]*( ( 1.00/delta_x )*( ( w_field[I1D(i+1,j,k)] - w_field[I1D(i,j,k)] )/( x_field[I1D(i+1,j,k)] - x_field[I1D(i,j,k)] )
+										 - ( w_field[I1D(i,j,k)] - w_field[I1D(i-1,j,k)] )/( x_field[I1D(i,j,k)] - x_field[I1D(i-1,j,k)] ) )
+									+ ( 1.00/delta_y )*( ( w_field[I1D(i,j+1,k)] - w_field[I1D(i,j,k)] )/( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j,k)] )
+										 - ( w_field[I1D(i,j,k)] - w_field[I1D(i,j-1,k)] )/( y_field[I1D(i,j,k)] - y_field[I1D(i,j-1,k)] ) )
+									+ ( 1.00/delta_z )*( ( w_field[I1D(i,j,k+1)] - w_field[I1D(i,j,k)] )/( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k)] )
+										 - ( w_field[I1D(i,j,k)] - w_field[I1D(i,j,k-1)] )/( z_field[I1D(i,j,k)] - z_field[I1D(i,j,k-1)] ) ) )
+								+ ( 1.0/3.0 )*mu_field[I1D(i,j,k)]*( ( 0.25/delta_z )*( ( u_field[I1D(i+1,j,k+1)] - u_field[I1D(i-1,j,k+1)] )/delta_x
+										 - ( u_field[I1D(i+1,j,k-1)] - u_field[I1D(i-1,j,k-1)] )/delta_x )
+									+ ( 0.25/delta_z )*( ( v_field[I1D(i,j+1,k+1)] - v_field[I1D(i,j-1,k+1)] )/delta_y
+										 - ( v_field[I1D(i,j+1,k-1)] - v_field[I1D(i,j-1,k-1)] )/delta_y )
+									+ ( 1.00/delta_z )*( ( w_field[I1D(i,j,k+1)] - w_field[I1D(i,j,k)] )/( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k)] )
+										 - ( w_field[I1D(i,j,k)] - w_field[I1D(i,j,k-1)] )/( z_field[I1D(i,j,k)] - z_field[I1D(i,j,k-1)] ) ) )
+								+ ( d_mu_x*tau_xz + d_mu_y*tau_yz + d_mu_z*tau_zz )/max( mu_field[I1D(i,j,k)], epsilon );
+				rhow_vis_flux[I1D(i,j,k)] = div_tau_z;
+			}
+		}
+	}
+
+	/// rhoE_vis_flux
+	#pragma acc parallel loop collapse(3) default(present)
+	for(int i = imin; i <= imax; i++) {
+		for(int j = jmin; j <= jmax; j++) {
+			for(int k = kmin; k <= kmax; k++) {
+				/// Geometric stuff
+				const double delta_x = 0.5*( x_field[I1D(i+1,j,k)] - x_field[I1D(i-1,j,k)] );
+				const double delta_y = 0.5*( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j-1,k)] );
+				const double delta_z = 0.5*( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k-1)] );
+				/// Velocity derivatives
+				const double d_u_x = ( u_field[I1D(i+1,j,k)] - u_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_u_y = ( u_field[I1D(i,j+1,k)] - u_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_u_z = ( u_field[I1D(i,j,k+1)] - u_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				const double d_v_x = ( v_field[I1D(i+1,j,k)] - v_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_v_y = ( v_field[I1D(i,j+1,k)] - v_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_v_z = ( v_field[I1D(i,j,k+1)] - v_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				const double d_w_x = ( w_field[I1D(i+1,j,k)] - w_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_w_y = ( w_field[I1D(i,j+1,k)] - w_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_w_z = ( w_field[I1D(i,j,k+1)] - w_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				/// Temperature derivatives
+				const double d_T_x = ( T_field[I1D(i+1,j,k)] - T_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_T_y = ( T_field[I1D(i,j+1,k)] - T_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_T_z = ( T_field[I1D(i,j,k+1)] - T_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				/// Thermal conductivity derivatives
+				const double d_kappa_x = ( kappa_field[I1D(i+1,j,k)] - kappa_field[I1D(i-1,j,k)] )/( 2.0*delta_x );
+				const double d_kappa_y = ( kappa_field[I1D(i,j+1,k)] - kappa_field[I1D(i,j-1,k)] )/( 2.0*delta_y );
+				const double d_kappa_z = ( kappa_field[I1D(i,j,k+1)] - kappa_field[I1D(i,j,k-1)] )/( 2.0*delta_z );
+				const double div_uvw = d_u_x + d_v_y + d_w_z;
+				/// Viscous stresses (symmetric tensor)
+				const double tau_xx = 2.0*mu_field[I1D(i,j,k)]*( d_u_x - ( div_uvw/3.0 ) );
+				const double tau_xy = mu_field[I1D(i,j,k)]*( d_u_y + d_v_x );
+				const double tau_xz = mu_field[I1D(i,j,k)]*( d_u_z + d_w_x );
+				const double tau_yy = 2.0*mu_field[I1D(i,j,k)]*( d_v_y - ( div_uvw/3.0 ) );
+				const double tau_yz = mu_field[I1D(i,j,k)]*( d_v_z + d_w_y );
+				const double tau_zz = 2.0*mu_field[I1D(i,j,k)]*( d_w_z - ( div_uvw/3.0 ) );
+
+                const double div_tau_x = rhou_vis_flux[I1D(i,j,k)];
+                const double div_tau_y = rhov_vis_flux[I1D(i,j,k)];
+                const double div_tau_z = rhow_vis_flux[I1D(i,j,k)];
+
+				/// Fourier term
+				const double div_q = ( -1.0 )*kappa_field[I1D(i,j,k)]*( ( 1.0/delta_x )*( ( T_field[I1D(i+1,j,k)] - T_field[I1D(i,j,k)] )/( x_field[I1D(i+1,j,k)] - x_field[I1D(i,j,k)] )
+										 - ( T_field[I1D(i,j,k)] - T_field[I1D(i-1,j,k)] )/( x_field[I1D(i,j,k)] - x_field[I1D(i-1,j,k)] ) )
+									+ ( 1.0/delta_y )*( ( T_field[I1D(i,j+1,k)] - T_field[I1D(i,j,k)] )/( y_field[I1D(i,j+1,k)] - y_field[I1D(i,j,k)] )
+										 - ( T_field[I1D(i,j,k)] - T_field[I1D(i,j-1,k)] )/( y_field[I1D(i,j,k)] - y_field[I1D(i,j-1,k)] ) )
+									+ ( 1.0/delta_z )*( ( T_field[I1D(i,j,k+1)] - T_field[I1D(i,j,k)] )/( z_field[I1D(i,j,k+1)] - z_field[I1D(i,j,k)] )
+										 - ( T_field[I1D(i,j,k)] - T_field[I1D(i,j,k-1)] )/( z_field[I1D(i,j,k)] - z_field[I1D(i,j,k-1)] ) ) )
+								- d_kappa_x*d_T_x - d_kappa_y*d_T_y - d_kappa_z*d_T_z;
+				/// Work of viscous stresses for internal energy
+				const double div_uvw_tau_rhoe = tau_xx*d_u_x + tau_xy*d_u_y + tau_xz*d_u_z
+											+ tau_xy*d_v_x + tau_yy*d_v_y + tau_yz*d_v_z
+											+ tau_xz*d_w_x + tau_yz*d_w_y + tau_zz*d_w_z;
+				const double div_uvw_tau_rhoke = u_field[I1D(i,j,k)]*div_tau_x + v_field[I1D(i,j,k)]*div_tau_y + w_field[I1D(i,j,k)]*div_tau_z;
+				const double div_uvw_tau_rhoE = div_uvw_tau_rhoe + div_uvw_tau_rhoke;
+				rhoE_vis_flux[I1D(i,j,k)] = ( -1.0 )*div_q + div_uvw_tau_rhoE;
+				work_vis_rhoe_flux[I1D(i,j,k)] = ( -1.0 )*div_q + div_uvw_tau_rhoe;
+			}
+		}
+	}
+
 
     /// Update halo values
     //rhou_vis_flux.update();
